@@ -4,14 +4,9 @@ import {
   Filter, Building2, Mail, User, Clock, AlertCircle, CheckCircle2 
 } from 'lucide-react';
 
-// ==========================================
-// CONFIGURATION & MOCK BACKEND
-// ==========================================
-// Set to false to use the real Node.js backend (server.js)
-const USE_MOCK_API = false; 
+const USE_MOCK_API = True; 
 const API_BASE_URL = 'http://localhost:5000/api';
 
-// --- MOCK DATA GENERATOR (Simulating 10,000+ DB Records) ---
 const generateMockData = () => {
   const statuses = ['New', 'Contacted', 'Qualified', 'Lost', 'Won'];
   const owners = ['Alice Smith', 'Bob Johnson', 'Charlie Davis', 'Diana Prince', 'Evan Wright'];
@@ -38,7 +33,6 @@ const generateMockData = () => {
 
 const MOCK_DB = generateMockData();
 
-// --- MOCK API SERVICE ---
 const mockFetch = async (endpoint, options = {}) => {
   return new Promise((resolve) => {
     setTimeout(() => {
@@ -47,11 +41,9 @@ const mockFetch = async (endpoint, options = {}) => {
       
       let results = [...MOCK_DB];
 
-      // 1. Filtering
       if (params.status) results = results.filter(r => r.status === params.status);
       if (params.owner) results = results.filter(r => r.owner === params.owner);
       
-      // 2. Searching
       if (params.search) {
         const query = params.search.toLowerCase();
         results = results.filter(r => 
@@ -61,7 +53,6 @@ const mockFetch = async (endpoint, options = {}) => {
         );
       }
 
-      // 3. Sorting
       if (params.sortBy) {
         const order = params.sortOrder === 'desc' ? -1 : 1;
         results.sort((a, b) => {
@@ -71,26 +62,20 @@ const mockFetch = async (endpoint, options = {}) => {
         });
       }
 
-      // 4. Pagination & Limits
       const total = results.length;
       const page = parseInt(params.page) || 1;
       const limit = parseInt(params.limit) || 10;
       const startIndex = (page - 1) * limit;
       
       if (endpoint.includes('/leads/search')) {
-        // Global search specific
         resolve({ data: results.slice(0, limit) });
       } else {
-        // Grid specific
         resolve({ data: results.slice(startIndex, startIndex + limit), total, page, totalPages: Math.ceil(total / limit) });
       }
-    }, 400); // Simulate network latency
+    }, 400); 
   });
 };
 
-// ==========================================
-// UTILITY HOOKS
-// ==========================================
 function useDebounce(value, delay) {
   const [debouncedValue, setDebouncedValue] = useState(value);
   useEffect(() => {
@@ -100,11 +85,6 @@ function useDebounce(value, delay) {
   return debouncedValue;
 }
 
-// ==========================================
-// COMPONENTS
-// ==========================================
-
-// --- Global Search Component ---
 const GlobalSearch = ({ onSelect }) => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
@@ -134,7 +114,6 @@ const GlobalSearch = ({ onSelect }) => {
     fetchSearchResults();
   }, [debouncedQuery]);
 
-  // Click outside to close
   useEffect(() => {
     function handleClickOutside(event) {
       if (wrapperRef.current && !wrapperRef.current.contains(event.target)) setIsOpen(false);
@@ -190,30 +169,24 @@ const GlobalSearch = ({ onSelect }) => {
   );
 };
 
-// --- Main Application ---
 export default function App() {
-  // State: Pagination & Sorting
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
   const [sortBy, setSortBy] = useState('createdAt');
   const [sortOrder, setSortOrder] = useState('desc');
   
-  // State: Filters
   const [search, setSearch] = useState('');
   const debouncedGridSearch = useDebounce(search, 400);
   const [statusFilter, setStatusFilter] = useState('');
   const [ownerFilter, setOwnerFilter] = useState('');
 
-  // State: Data
   const [data, setData] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Ref for AbortController to cancel stale requests
   const abortControllerRef = useRef(null);
 
-  // Fetch Data function (Memoized to prevent recreation)
   const fetchLeads = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -251,18 +224,15 @@ export default function App() {
     }
   }, [page, limit, sortBy, sortOrder, debouncedGridSearch, statusFilter, ownerFilter]);
 
-  // Trigger fetch when dependencies change
   useEffect(() => {
     fetchLeads();
     return () => { if (abortControllerRef.current) abortControllerRef.current.abort(); };
   }, [fetchLeads]);
 
-  // Reset page when filters change
   useEffect(() => {
     setPage(1);
   }, [debouncedGridSearch, statusFilter, ownerFilter]);
 
-  // Sort Handler
   const handleSort = (column) => {
     if (sortBy === column) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
@@ -277,7 +247,6 @@ export default function App() {
     return sortOrder === 'asc' ? <ChevronUp className="w-4 h-4 inline-block text-indigo-600" /> : <ChevronDown className="w-4 h-4 inline-block text-indigo-600" />;
   };
 
-  // Status Badge styling
   const getStatusColor = (status) => {
     switch(status) {
       case 'New': return 'bg-blue-50 text-blue-700 ring-1 ring-blue-600/20';
